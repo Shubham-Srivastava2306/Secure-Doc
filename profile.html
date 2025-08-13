@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>My Profile</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 text-gray-800">
+  <div class="max-w-xl mx-auto mt-10 p-6 bg-white shadow-lg rounded-lg">
+    <h2 class="text-2xl font-bold mb-4 text-center">👤 My Profile</h2>
+    <div id="profileInfo" class="text-lg"></div>
+    <div class="mt-4 flex justify-between">
+      <a href="dashboard.html" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">⬅ Back to Dashboard</a>
+      <button onclick="logout()" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Logout</button>
+    </div>
+  </div>
+
+<script>
+const serverURL = "https://secure-docs-backend.onrender.com";
+
+
+
+async function fetchProfile() {
+  const aadhaar = localStorage.getItem("aadhaar");
+  if (!aadhaar) return window.location.href = "login.html";
+
+  const res = await fetch(`${serverURL}/api/auth/profile/${aadhaar}`);
+  const data = await res.json();
+
+  if (!res.ok) {
+    alert(data.message || "Error fetching profile");
+    return;
+  }
+
+  const profile = data.profile; // ✅ backend returns { profile: {...} }
+
+  document.getElementById("profileInfo").innerHTML = `
+    <p><strong>Name:</strong> ${profile.name}</p>
+    <p><strong>Email:</strong> ${profile.email}</p>
+    <p><strong>Aadhaar:</strong> ${profile.aadhaar}</p>
+    <p><strong>DOB:</strong> ${new Date(profile.dob).toLocaleDateString()}</p>
+  `;
+}
+
+function logout() {
+  localStorage.removeItem("aadhaar");
+  window.location.href = "login.html";
+}
+
+window.onload = fetchProfile;
+</script>
+
+</body>
+</html>

@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Secure Docs - Register</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <style>
+    body {
+      background: linear-gradient(135deg, #f0f4f8, #d9e4ec);
+      font-family: 'Segoe UI', sans-serif;
+    }
+    .form-card {
+      animation: slideUp 0.5s ease-in-out;
+    }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    input, button {
+      transition: all 0.18s ease-in-out;
+    }
+    input:focus {
+      outline: none;
+      border-color: #4f46e5;
+      box-shadow: 0 0 6px rgba(79,70,229,0.18);
+    }
+    .muted { color: #6b7280; }
+  </style>
+</head>
+<body>
+  <div class="max-w-lg mx-auto mt-12 bg-white p-6 rounded-lg shadow-lg form-card">
+    <h2 class="text-2xl font-bold mb-4 text-center text-gray-800">Create an account</h2>
+
+    <label class="block font-semibold">Full Name</label>
+    <input id="name" type="text" class="w-full border px-3 py-2 mb-3 rounded" placeholder="Your full name">
+
+    <label class="block font-semibold">Email</label>
+    <input id="email" type="email" class="w-full border px-3 py-2 mb-3 rounded" placeholder="you@example.com">
+
+    <label class="block font-semibold">Aadhaar Number</label>
+    <input id="aadhaar" type="text" class="w-full border px-3 py-2 mb-3 rounded" placeholder="12-digit Aadhaar">
+
+    <label class="block font-semibold">Date of Birth</label>
+    <input id="dob" type="date" class="w-full border px-3 py-2 mb-4 rounded">
+
+    <button id="sendOtpBtn" onclick="sendOTP()" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 mb-3">
+      Send OTP
+    </button>
+
+    <div id="otpSection" class="mt-4 hidden">
+      <input id="otp" type="text" placeholder="Enter OTP" class="w-full border px-3 py-2 mb-3 rounded">
+      <button onclick="verifyRegistrationOTP()" class="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700">Verify & Register</button>
+    </div>
+
+    <p class="mt-4 text-sm muted text-center">
+      Already registered? <a href="login.html" class="text-blue-600 underline">Login</a>
+    </p>
+  </div>
+
+<script>
+const serverURL = "https://secure-docs-backend.onrender.com";
+
+// Prefill Aadhaar if login redirected here
+window.addEventListener('DOMContentLoaded', () => {
+  const prefill = localStorage.getItem('prefillAadhaar');
+  if (prefill) {
+    document.getElementById('aadhaar').value = prefill;
+    localStorage.removeItem('prefillAadhaar');
+  }
+});
+
+function validAadhaar(a) {
+  return /^\d{12}$/.test(a);
+}
+
+async function sendOTP() {
+  const aadhaar = (document.getElementById('aadhaar').value || '').trim();
+  if (!validAadhaar(aadhaar)) return alert('Enter a valid 12-digit Aadhaar number');
+
+  try {
+    const res = await fetch(`${serverURL}/api/auth/send-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ aadhaar, purpose: 'register' }) // <-- Add purpose here
+    });
+
+    const data = await res.json();
+    if (!res.ok) return alert(data.message || 'Failed to send OTP');
+
+    // ✅ Show OTP in alert for testing
+    if (data.otp) {
+      alert(`OTP: ${data.otp} (for testing only)`);
+    } else {
+      alert(data.message);
+    }
+
+    document.getElementById('otpSection').classList.remove('hidden');
+    localStorage.setItem('pendingAadhaar', aadhaar);
+  } catch (err) {
+    console.error(err);
+    alert('Network error while sending OTP');
+  }
+}
+
+
+async function verifyRegistrationOTP() {
+  const name = (document.getElementById('name').value || '').trim();
+  const email = (document.getElementById('email').value || '').trim();
+  const aadhaar = (document.getElementById('aadhaar').value || '').trim();
+  const dob = document.getElementById('dob').value;
+  const otp = (document.getElementById('otp').value || '').trim();
+
+  if (!name || !email || !aadhaar || !dob || !otp) {
+    return alert('Please fill all fields and enter OTP');
+  }
+  if (!validAadhaar(aadhaar)) return alert('Enter a valid 12-digit Aadhaar number');
+
+  try {
+    // Verify OTP first
+    const verifyRes = await fetch(`${serverURL}/api/auth/verify-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ aadhaar, otp })
+    });
+    const verifyData = await verifyRes.json();
+    if (!verifyRes.ok && !verifyData.registerRequired) {
+      // OTP invalid or expired etc.
+      return alert(verifyData.message || 'OTP verification failed');
+    }
+
+    // If backend returns "Login successful" that means user already has profile.
+    if (verifyData.message && verifyData.message.toLowerCase().includes('login successful')) {
+      alert('Aadhaar already registered. Please login.');
+      window.location.href = 'login.html';
+      return;
+    }
+
+    // Now call register endpoint
+    const regRes = await fetch(`${serverURL}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, aadhaar, dob })
+    });
+    const regData = await regRes.json();
+    if (!regRes.ok) return alert(regData.message || 'Registration failed');
+    alert('✅ Registration successful — please login');
+    window.location.href = 'login.html';
+  } catch (err) {
+    console.error(err);
+    alert('Network error during registration');
+  }
+}
+</script>
+</body>
+</html>
