@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <title>Secure Docs - Register</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <style>
     body {
@@ -27,9 +28,9 @@
     .muted { color: #6b7280; }
   </style>
 </head>
-<body>
-  <div class="max-w-lg mx-auto mt-12 bg-white p-6 rounded-lg shadow-lg form-card">
-    <h2 class="text-2xl font-bold mb-4 text-center text-gray-800">Create an account</h2>
+<body class="min-h-screen flex items-center justify-center px-2">
+  <div class="w-full max-w-xs sm:max-w-md bg-white p-4 sm:p-6 rounded-lg shadow-lg form-card mt-8 sm:mt-12">
+    <h2 class="text-xl sm:text-2xl font-bold mb-4 text-center text-gray-800">Create an account</h2>
 
     <label class="block font-semibold">Full Name</label>
     <input id="name" type="text" class="w-full border px-3 py-2 mb-3 rounded" placeholder="Your full name">
